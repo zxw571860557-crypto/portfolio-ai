@@ -210,18 +210,18 @@ export default function PreviewPage() {
       </p>
 
       <button onClick={() => router.push('/generate')}
-        className="absolute top-4 left-4 px-3 py-1.5 bg-white/70 backdrop-blur rounded-lg text-xs font-medium hover:bg-white transition-all shadow-sm z-30"
+        className="absolute top-20 left-4 px-3 py-1.5 bg-white/80 backdrop-blur rounded-lg text-xs font-medium hover:bg-white transition-all shadow-sm z-30"
         style={{ color: t.textMuted }}>
-        ← 返回
+        ← 返回编辑
       </button>
 
       <button
         onClick={handleExportPdf}
         disabled={isExporting}
-        className="absolute top-4 right-4 px-4 py-1.5 rounded-lg text-xs font-medium transition-all shadow-sm z-30 disabled:opacity-60"
+        className="absolute top-20 right-4 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all shadow-md z-30 disabled:opacity-60 hover:opacity-90"
         style={{ backgroundColor: t.primary, color: t.onPrimary }}
       >
-        {isExporting ? '正在生成 PDF...' : exportError ? 'PDF 导出失败，请稍后重试。' : '导出 PDF'}
+        {isExporting ? '正在生成 PDF...' : exportError ? '导出失败，请重试' : '导出 PDF'}
       </button>
 
       {/* Hidden export container — rendered off-screen for html2canvas */}
