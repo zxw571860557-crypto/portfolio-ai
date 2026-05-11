@@ -161,7 +161,7 @@ export default function Home() {
       <footer className="border-t border-gray-100 py-8 text-center text-sm text-gray-400">
         <p>
           <span className="font-semibold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Portfolio AI</span>
-          {' '}Beta v1.1 · 已支持云端图片存储
+          {' '}Beta v1.2 · 支持云端图片存储与 PDF 导出
         </p>
       </footer>
     </div>

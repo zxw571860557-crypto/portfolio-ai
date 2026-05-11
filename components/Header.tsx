@@ -24,7 +24,7 @@ export default function Header() {
             style={{ mixBlendMode: 'multiply' }}
           />
           <span className="px-1.5 py-0.5 rounded-full text-[0.625rem] font-medium bg-indigo-50 text-indigo-500 border border-indigo-100 leading-none">
-            Beta v1.1
+            Beta v1.2
           </span>
         </Link>
         <nav className="flex items-center gap-6 text-sm">

@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/StoreContext';
 import { THEME_MAP, ThemeColors, ThemeKey } from '@/lib/themes';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function PreviewPage() {
   const router = useRouter();
@@ -45,6 +47,66 @@ export default function PreviewPage() {
     const idx = pages.findIndex((p) => p.key.startsWith('work-'));
     return idx >= 0 ? idx : total;
   }, [pages, total]);
+
+  /* ── PDF Export ── */
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  const handleExportPdf = useCallback(async () => {
+    setIsExporting(true);
+    setExportError(false);
+    try {
+      // Wait a tick for the export container to render
+      await new Promise((r) => setTimeout(r, 200));
+
+      const container = exportRef.current;
+      if (!container) throw new Error('Export container not found');
+
+      // Wait for all images in the export container to load
+      const imgs = container.querySelectorAll('img');
+      await Promise.all(
+        Array.from(imgs).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) resolve();
+              else { img.onload = () => resolve(); img.onerror = () => resolve(); }
+            })
+        )
+      );
+
+      const pageEls = container.querySelectorAll('[data-export-page]');
+      if (pageEls.length === 0) throw new Error('No pages found');
+
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = 297;
+      const pageHeight = 210;
+      const margin = 10;
+      const imgWidth = pageWidth - 2 * margin;
+      const imgHeight = imgWidth * (9 / 16);
+
+      for (let i = 0; i < pageEls.length; i++) {
+        const el = pageEls[i] as HTMLElement;
+        const canvas = await html2canvas(el, {
+          useCORS: true,
+          allowTaint: false,
+          scale: 2,
+          backgroundColor: null,
+        });
+
+        if (i > 0) pdf.addPage();
+        const y = (pageHeight - imgHeight) / 2;
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, y, imgWidth, imgHeight);
+      }
+
+      const name = f.name?.trim() || 'Portfolio_AI';
+      pdf.save(`${name}_Portfolio.pdf`);
+    } catch {
+      setExportError(true);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [f.name]);
 
   /* Keyboard */
   useEffect(() => {
@@ -152,6 +214,52 @@ export default function PreviewPage() {
         style={{ color: t.textMuted }}>
         ← 返回
       </button>
+
+      <button
+        onClick={handleExportPdf}
+        disabled={isExporting}
+        className="absolute top-4 right-4 px-4 py-1.5 rounded-lg text-xs font-medium transition-all shadow-sm z-30 disabled:opacity-60"
+        style={{ backgroundColor: t.primary, color: t.onPrimary }}
+      >
+        {isExporting ? '正在生成 PDF...' : exportError ? 'PDF 导出失败，请稍后重试。' : '导出 PDF'}
+      </button>
+
+      {/* Hidden export container — rendered off-screen for html2canvas */}
+      <div
+        ref={exportRef}
+        className="fixed left-[-9999px] top-0 z-[-1]"
+        style={{ width: 1056, pointerEvents: 'none' }}
+        aria-hidden="true"
+      >
+        {pages.map((p) => {
+          let content: React.ReactNode = null;
+          switch (p.key) {
+            case 'cover':
+              content = (
+                <CoverPage formData={f} theme={t} artworks={allOrdered} onGoToWork={() => {}} />
+              );
+              break;
+            case 'intro':
+              content = <IntroPage formData={f} generatedData={g} theme={t} />;
+              break;
+            case 'contents':
+              content = <ContentsPage artworks={allOrdered} theme={t} onGoToWork={() => {}} />;
+              break;
+            case 'thanks':
+              content = <ThanksPage name={f.name} coverImage={f.coverImage} theme={t} />;
+              break;
+            default: {
+              const idx = parseInt(p.key.replace('work-', ''), 10);
+              content = <WorkPage artwork={allOrdered[idx]} index={idx} theme={t} />;
+            }
+          }
+          return (
+            <div key={p.key} data-export-page={p.key} style={{ width: 1056, height: 594, overflow: 'hidden' }}>
+              {content}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
