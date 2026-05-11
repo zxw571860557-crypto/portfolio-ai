@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore, FormData, Artwork, ArtworkImage, newArtwork } from '@/lib/StoreContext';
 import { generatePortfolio } from '@/lib/mockAI';
 import { THEME_OPTIONS, ThemeKey } from '@/lib/themes';
+import { uploadToCloudinary, UploadError } from '@/lib/cloudinary';
 
 const ARTWORK_TYPES = ['海报设计', '品牌设计', 'UI设计', '空间设计', '插画', '摄影', 'AI视觉', '其他'];
 const STYLE_OPTIONS = [
@@ -62,57 +63,99 @@ export default function FormPage() {
 
   const update = (field: keyof FormData, value: string) => setFormData({ [field]: value });
 
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
+  /* ── Upload state ── */
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const clearError = useCallback((key: string) => {
+    setUploadErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+  }, []);
+
+  async function uploadImage(slotKey: string, file: File, onSuccess: (img: ArtworkImage) => void) {
+    if (!file.type.startsWith('image/')) {
+      setUploadErrors((prev) => ({ ...prev, [slotKey]: '请选择图片文件' }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadErrors((prev) => ({ ...prev, [slotKey]: '图片大小不能超过 5MB' }));
+      return;
+    }
+
+    setUploading((prev) => ({ ...prev, [slotKey]: true }));
+    clearError(slotKey);
+
+    try {
+      const url = await uploadToCloudinary(file);
+      onSuccess({ id: `img${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, dataUrl: url });
+    } catch (err) {
+      const msg = err instanceof UploadError ? err.message : '上传失败，请检查网络后重试';
+      setUploadErrors((prev) => ({ ...prev, [slotKey]: msg }));
+    } finally {
+      setUploading((prev) => { const n = { ...prev }; delete n[slotKey]; return n; });
+    }
+  }
+
   /* ── Artwork helpers ── */
   const setArtworks = (artworks: Artwork[]) => setFormData({ artworks });
   const addArtwork = () => setArtworks([...formData.artworks, newArtwork()]);
   const removeArtwork = (id: string) => {
-    const a = formData.artworks.find((aw) => aw.id === id);
-    if (a) {
-      revokeImg(a.mainImage);
-      a.auxImages.forEach(revokeImg);
-      revokeImg(a.thumbnail);
-    }
     setArtworks(formData.artworks.filter((aw) => aw.id !== id));
   };
   const updateArtwork = (id: string, patch: Partial<Artwork>) =>
     setArtworks(formData.artworks.map((a) => (a.id === id ? { ...a, ...patch } : a)));
 
-  /* ── Image helpers ── */
-  function fileToImg(file: File): ArtworkImage {
-    return { id: `img${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, dataUrl: URL.createObjectURL(file) };
-  }
-  function revokeImg(img: ArtworkImage | null) {
-    if (img?.dataUrl?.startsWith('blob:')) URL.revokeObjectURL(img.dataUrl);
-  }
+  /* ── Image upload handlers ── */
+  const handleCoverUpload = (file: File | null) => {
+    if (!file) return;
+    uploadImage('cover', file, (img) => setFormData({ coverImage: img }));
+  };
 
-  const handleSingleImageUpload = (prevImg: ArtworkImage | null, file: File | null, callback: (img: ArtworkImage) => void) => {
-    if (!file || !file.type.startsWith('image/')) return;
-    revokeImg(prevImg);
-    callback(fileToImg(file));
+  const handleProfilePhotoUpload = (file: File | null) => {
+    if (!file) return;
+    uploadImage('photo', file, (img) => setFormData({ profilePhoto: img }));
   };
 
   const handleMainImageUpload = (artworkId: string, file: File | null) => {
-    const artwork = formData.artworks.find((a) => a.id === artworkId);
-    if (!artwork) return;
-    handleSingleImageUpload(artwork.mainImage, file, (img) => updateArtwork(artworkId, { mainImage: img }));
+    if (!file) return;
+    const key = `a-${artworkId}-main`;
+    uploadImage(key, file, (img) => updateArtwork(artworkId, { mainImage: img }));
   };
 
   const handleAuxImagesUpload = (artworkId: string, files: FileList | null) => {
     if (!files) return;
-    const artwork = formData.artworks.find((a) => a.id === artworkId);
-    if (!artwork) return;
-    const remaining = 3 - artwork.auxImages.length;
+    const current = formDataRef.current.artworks.find((a) => a.id === artworkId);
+    if (!current) return;
+    const remaining = 3 - current.auxImages.length;
     if (remaining <= 0) return;
     const valid = Array.from(files).filter((f) => f.type.startsWith('image/')).slice(0, remaining);
-    const newImgs = valid.map(fileToImg);
-    updateArtwork(artworkId, { auxImages: [...artwork.auxImages, ...newImgs] });
+
+    const key = `a-${artworkId}-aux`;
+    setUploading((prev) => ({ ...prev, [key]: true }));
+
+    Promise.allSettled(valid.map((f) => uploadToCloudinary(f))).then((results) => {
+      const newImgs: ArtworkImage[] = [];
+      results.forEach((r) => {
+        if (r.status === 'fulfilled') {
+          newImgs.push({ id: `img${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, dataUrl: r.value });
+        }
+      });
+      if (newImgs.length > 0) {
+        updateArtwork(artworkId, { auxImages: [...current.auxImages, ...newImgs] });
+      }
+      const firstErr = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+      if (firstErr) {
+        const msg = firstErr.reason instanceof UploadError ? firstErr.reason.message : '上传失败，请检查网络后重试';
+        setUploadErrors((prev) => ({ ...prev, [key]: msg }));
+      }
+      setUploading((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    });
   };
 
   const removeAuxImage = (artworkId: string, imageId: string) => {
     const artwork = formData.artworks.find((a) => a.id === artworkId);
     if (!artwork) return;
-    const img = artwork.auxImages.find((i) => i.id === imageId);
-    revokeImg(img || null);
     updateArtwork(artworkId, { auxImages: artwork.auxImages.filter((i) => i.id !== imageId) });
   };
 
@@ -140,20 +183,29 @@ export default function FormPage() {
 
           {/* 封面设置 */}
           <SectionCard title="封面设置" desc="设置作品集封面和个人照片">
+            <div className="mb-5 px-3 py-2 rounded-lg bg-indigo-50/60 border border-indigo-100 text-xs text-indigo-500">
+              当前版本已支持云端图片存储，上传后的图片可在刷新或更换设备后继续显示。
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ImageUploadField
                 label="封面主图"
                 desc="作品集封面展示的图片"
                 image={formData.coverImage}
-                onUpload={(f) => handleSingleImageUpload(formData.coverImage, f, (img) => setFormData({ coverImage: img }))}
-                onRemove={() => { revokeImg(formData.coverImage); setFormData({ coverImage: null }); }}
+                uploading={uploading['cover'] || false}
+                error={uploadErrors['cover'] || null}
+                slotKey="cover"
+                onUpload={handleCoverUpload}
+                onRemove={() => { setFormData({ coverImage: null }); }}
               />
               <ImageUploadField
                 label="个人形象照"
                 desc="请上传竖版人物照，以获得更好的作品集展示效果"
                 image={formData.profilePhoto}
-                onUpload={(f) => handleSingleImageUpload(formData.profilePhoto, f, (img) => setFormData({ profilePhoto: img }))}
-                onRemove={() => { revokeImg(formData.profilePhoto); setFormData({ profilePhoto: null }); }}
+                uploading={uploading['photo'] || false}
+                error={uploadErrors['photo'] || null}
+                slotKey="photo"
+                onUpload={handleProfilePhotoUpload}
+                onRemove={() => { setFormData({ profilePhoto: null }); }}
               />
             </div>
           </SectionCard>
@@ -191,14 +243,20 @@ export default function FormPage() {
                   artwork={artwork}
                   index={idx}
                   total={formData.artworks.length}
+                  uploading={uploading}
+                  uploadErrors={uploadErrors}
+                  clearError={clearError}
                   onChange={(p) => updateArtwork(artwork.id, p)}
                   onRemove={() => removeArtwork(artwork.id)}
                   onMainImageUpload={(f) => handleMainImageUpload(artwork.id, f)}
                   onAuxImagesUpload={(f) => handleAuxImagesUpload(artwork.id, f)}
                   onRemoveAuxImage={(imgId) => removeAuxImage(artwork.id, imgId)}
-                  onThumbnailUpload={(f) => handleSingleImageUpload(artwork.thumbnail, f, (img) => updateArtwork(artwork.id, { thumbnail: img }))}
-                  onRemoveThumbnail={() => { revokeImg(artwork.thumbnail); updateArtwork(artwork.id, { thumbnail: null }); }}
-                  onRemoveMainImage={() => { revokeImg(artwork.mainImage); updateArtwork(artwork.id, { mainImage: null }); }}
+                  onThumbnailUpload={(f) => {
+                    if (!f) return;
+                    uploadImage(`a-${artwork.id}-thumb`, f, (img) => updateArtwork(artwork.id, { thumbnail: img }));
+                  }}
+                  onRemoveThumbnail={() => { updateArtwork(artwork.id, { thumbnail: null }); }}
+                  onRemoveMainImage={() => { updateArtwork(artwork.id, { mainImage: null }); }}
                 />
               ))}
 
@@ -270,11 +328,14 @@ export default function FormPage() {
 }
 
 /* ── Image upload field (single) ── */
-function ImageUploadField({ label, desc, image, onUpload, onRemove }: {
+function ImageUploadField({ label, desc, image, uploading, error, onUpload, onRemove, slotKey }: {
   label: string; desc: string;
   image: ArtworkImage | null;
+  uploading: boolean;
+  error: string | null;
   onUpload: (file: File | null) => void;
   onRemove: () => void;
+  slotKey: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   return (
@@ -292,17 +353,28 @@ function ImageUploadField({ label, desc, image, onUpload, onRemove }: {
           onChange={(e) => { onUpload(e.target.files?.[0] || null); e.target.value = ''; }} />
       )}
       {!image && (
-        <button type="button" onClick={() => fileRef.current?.click()}
-          className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all text-sm">
-          + 上传图片
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+          className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all text-sm disabled:opacity-50">
+          {uploading ? (
+            <span className="inline-flex items-center gap-1.5">
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              上传中...
+            </span>
+          ) : '+ 上传图片'}
         </button>
+      )}
+      {error && (
+        <p className="mt-1.5 text-xs text-red-500">{error}</p>
       )}
     </div>
   );
 }
 
 /* ── Individual Artwork Card ── */
-function ArtworkCard({ artwork, index, total, onChange, onRemove, onMainImageUpload, onAuxImagesUpload, onRemoveAuxImage, onThumbnailUpload, onRemoveMainImage, onRemoveThumbnail }: {
+function ArtworkCard({ artwork, index, total, onChange, onRemove, onMainImageUpload, onAuxImagesUpload, onRemoveAuxImage, onThumbnailUpload, onRemoveMainImage, onRemoveThumbnail, uploading, uploadErrors, clearError }: {
   artwork: Artwork; index: number; total: number;
   onChange: (p: Partial<Artwork>) => void;
   onRemove: () => void;
@@ -312,6 +384,9 @@ function ArtworkCard({ artwork, index, total, onChange, onRemove, onMainImageUpl
   onThumbnailUpload: (file: File | null) => void;
   onRemoveMainImage: () => void;
   onRemoveThumbnail: () => void;
+  uploading: Record<string, boolean>;
+  uploadErrors: Record<string, string>;
+  clearError: (key: string) => void;
 }) {
   const mainFileRef = useRef<HTMLInputElement>(null);
   const auxFileRef = useRef<HTMLInputElement>(null);
@@ -364,10 +439,22 @@ function ArtworkCard({ artwork, index, total, onChange, onRemove, onMainImageUpl
                 <input ref={mainFileRef} type="file" accept="image/*" className="hidden"
                   onChange={(e) => { onMainImageUpload(e.target.files?.[0] || null); e.target.value = ''; }} />
                 <button type="button" onClick={() => mainFileRef.current?.click()}
-                  className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all text-sm">
-                  + 上传作品主图
+                  disabled={uploading[`a-${artwork.id}-main`]}
+                  className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all text-sm disabled:opacity-50">
+                  {uploading[`a-${artwork.id}-main`] ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      上传中...
+                    </span>
+                  ) : '+ 上传作品主图'}
                 </button>
               </>
+            )}
+            {uploadErrors[`a-${artwork.id}-main`] && (
+              <p className="mt-1.5 text-xs text-red-500">{uploadErrors[`a-${artwork.id}-main`]}</p>
             )}
           </div>
 
@@ -389,9 +476,21 @@ function ArtworkCard({ artwork, index, total, onChange, onRemove, onMainImageUpl
               onChange={(e) => { onAuxImagesUpload(e.target.files); e.target.value = ''; }} />
             {artwork.auxImages.length < 3 && (
               <button type="button" onClick={() => auxFileRef.current?.click()}
-                className="px-4 py-2 border border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all text-sm">
-                + 上传辅图
+                disabled={uploading[`a-${artwork.id}-aux`]}
+                className="px-4 py-2 border border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all text-sm disabled:opacity-50">
+                {uploading[`a-${artwork.id}-aux`] ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    上传中...
+                  </span>
+                ) : '+ 上传辅图'}
               </button>
+            )}
+            {uploadErrors[`a-${artwork.id}-aux`] && (
+              <p className="mt-1.5 text-xs text-red-500">{uploadErrors[`a-${artwork.id}-aux`]}</p>
             )}
           </div>
 
@@ -409,10 +508,22 @@ function ArtworkCard({ artwork, index, total, onChange, onRemove, onMainImageUpl
                 <input ref={thumbFileRef} type="file" accept="image/*" className="hidden"
                   onChange={(e) => { onThumbnailUpload(e.target.files?.[0] || null); e.target.value = ''; }} />
                 <button type="button" onClick={() => thumbFileRef.current?.click()}
-                  className="px-4 py-2 border border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all text-sm">
-                  + 上传缩略图
+                  disabled={uploading[`a-${artwork.id}-thumb`]}
+                  className="px-4 py-2 border border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all text-sm disabled:opacity-50">
+                  {uploading[`a-${artwork.id}-thumb`] ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      上传中...
+                    </span>
+                  ) : '+ 上传缩略图'}
                 </button>
               </>
+            )}
+            {uploadErrors[`a-${artwork.id}-thumb`] && (
+              <p className="mt-1.5 text-xs text-red-500">{uploadErrors[`a-${artwork.id}-thumb`]}</p>
             )}
           </div>
         </div>

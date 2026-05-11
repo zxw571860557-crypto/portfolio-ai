@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100" viewBox="0 0 400 100">
+  <defs>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <text x="0" y="72" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="800" letter-spacing="-1" fill="url(#brand)">Portfolio</text>
+  <text x="224" y="72" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="300" letter-spacing="-1" fill="#6b7280">AI</text>
+</svg>

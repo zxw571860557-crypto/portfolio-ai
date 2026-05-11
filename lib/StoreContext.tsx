@@ -130,15 +130,19 @@ function loadState(): AppState {
         return a;
       });
     }
-    // clean any base64 image data from loaded state
-    const isBase64 = (img: any) => img?.dataUrl && String(img.dataUrl).startsWith('data:');
-    if (isBase64(fd.coverImage)) fd.coverImage = null;
-    if (isBase64(fd.profilePhoto)) fd.profilePhoto = null;
+    // keep Cloudinary URLs (https://), discard blob: and data: URLs
+    const keepImage = (img: any) => {
+      if (!img?.dataUrl) return false;
+      const url = String(img.dataUrl);
+      return url.startsWith('https://');
+    };
+    fd.coverImage = keepImage(fd.coverImage) ? fd.coverImage : null;
+    fd.profilePhoto = keepImage(fd.profilePhoto) ? fd.profilePhoto : null;
     fd.artworks = fd.artworks.map((a: any) => ({
       ...a,
-      mainImage: isBase64(a.mainImage) ? null : (a.mainImage || null),
-      auxImages: (a.auxImages || []).filter((img: any) => !isBase64(img)),
-      thumbnail: isBase64(a.thumbnail) ? null : (a.thumbnail || null),
+      mainImage: keepImage(a.mainImage) ? a.mainImage : null,
+      auxImages: (a.auxImages || []).filter((img: any) => keepImage(img)),
+      thumbnail: keepImage(a.thumbnail) ? a.thumbnail : null,
     }));
     const merged: AppState = {
       formData: fd,
@@ -162,11 +166,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const fd = state.formData;
+      const persistImg = (img: any) => {
+        if (!img?.dataUrl) return null;
+        const url = String(img.dataUrl);
+        return url.startsWith('https://') ? img : null;
+      };
+      const filterAux = (imgs: any[]) => imgs.filter((img) => persistImg(img));
       const toStore = {
         formData: {
           ...fd,
-          coverImage: null,
-          profilePhoto: null,
+          coverImage: persistImg(fd.coverImage),
+          profilePhoto: persistImg(fd.profilePhoto),
           artworks: fd.artworks.map((a) => ({
             id: a.id,
             name: a.name,
@@ -174,9 +184,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             description: a.description,
             tools: a.tools,
             highlights: a.highlights,
-            mainImage: null,
-            auxImages: [],
-            thumbnail: null,
+            mainImage: persistImg(a.mainImage),
+            auxImages: filterAux(a.auxImages),
+            thumbnail: persistImg(a.thumbnail),
           })),
         },
         generatedData: state.generatedData,
