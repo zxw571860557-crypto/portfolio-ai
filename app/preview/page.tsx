@@ -435,6 +435,42 @@ function CollageGrid({
    INTRO — 3-column with visual hierarchy
    ═══════════════════════════════════════════════ */
 
+const SKILL_META: Record<string, { icon: string; desc: string }> = {
+  ps: { icon: 'Ps', desc: '图片后期、海报设计、视觉合成' },
+  photoshop: { icon: 'Ps', desc: '图片后期、海报设计、视觉合成' },
+  ai: { icon: 'Ai', desc: '图标设计、版式设计、视觉延展' },
+  illustrator: { icon: 'Ai', desc: '图标设计、版式设计、视觉延展' },
+  cad: { icon: 'CAD', desc: '图纸绘制、空间辅助表达' },
+  autocad: { icon: 'CAD', desc: '图纸绘制、空间辅助表达' },
+  chatgpt: { icon: 'GPT', desc: '文案优化、资料整理、逻辑梳理' },
+  claude: { icon: 'CLD', desc: '工作流整理、代码辅助、内容结构优化' },
+  midjourney: { icon: 'MJ', desc: '视觉风格探索、概念图生成' },
+  '即梦': { icon: 'JM', desc: '视觉风格探索、概念图生成' },
+  figma: { icon: 'Fg', desc: '界面设计、原型交互、组件库搭建' },
+  sketch: { icon: 'Sk', desc: '界面设计、矢量绘图' },
+  procreate: { icon: 'Pr', desc: '插画绘制、概念草图' },
+  blender: { icon: 'Bl', desc: '3D 建模、材质渲染' },
+  c4d: { icon: 'C4D', desc: '3D 视觉设计、动态图形' },
+  'after effects': { icon: 'AE', desc: '动效设计、视频后期' },
+  ae: { icon: 'AE', desc: '动效设计、视频后期' },
+  premiere: { icon: 'Pr', desc: '视频剪辑、后期制作' },
+  indesign: { icon: 'Id', desc: '版式编排、画册设计' },
+  su: { icon: 'SU', desc: '空间建模、建筑可视化' },
+  sketchup: { icon: 'SU', desc: '空间建模、建筑可视化' },
+  rhino: { icon: 'Rh', desc: '曲面建模、参数化设计' },
+  'stable diffusion': { icon: 'SD', desc: 'AI 图像生成、风格迁移' },
+  sd: { icon: 'SD', desc: 'AI 图像生成、风格迁移' },
+  d5: { icon: 'D5', desc: '实时渲染、空间可视化' },
+  lumion: { icon: 'Lu', desc: '建筑可视化、动画漫游' },
+};
+
+function lookupSkill(name: string): { icon: string; desc: string } {
+  const key = name.trim().toLowerCase();
+  if (SKILL_META[key]) return SKILL_META[key];
+  if (key.length <= 2) return { icon: name.trim().toUpperCase().slice(0, 3), desc: '专业设计工具' };
+  return { icon: name.trim().slice(0, 3).toUpperCase(), desc: '熟练运用' };
+}
+
 function IntroPage({
   formData: f,
   generatedData: g,
@@ -444,7 +480,7 @@ function IntroPage({
   generatedData: NonNullable<ReturnType<typeof useStore>['state']['generatedData']>;
   theme: ThemeColors;
 }) {
-  /* ── parse contact into phone / email ── */
+  /* ── parse contact ── */
   const contactRaw = f.contact?.trim() || '';
   const phoneMatch = contactRaw.match(/1\d{10}/);
   const emailMatch = contactRaw.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
@@ -453,34 +489,35 @@ function IntroPage({
 
   /* ── work entries ── */
   const raw = f.internship?.trim();
-  const workEntries = raw
-    ? raw.split(/[\n\r]+/).filter(Boolean).map((l) => l.replace(/^[•·\-—\s\d.、]+/, '').trim()).filter(Boolean).slice(0, 4)
+  const workEntries: string[] = raw
+    ? raw.split(/[\n\r]+/).filter(Boolean).map((l) => l.replace(/^[•·\-—\s\d.、]+/, '').trim()).filter(Boolean).slice(0, 5)
     : [];
 
   /* ── honors ── */
   const honors: string[] = g?.highlights?.length
-    ? g.highlights.slice(0, 4)
+    ? g.highlights.slice(0, 5)
     : f.desiredAbilities
-      ? f.desiredAbilities.split(/[,，、；;\s]+/).filter(Boolean).map((s) => s.trim()).slice(0, 4)
+      ? f.desiredAbilities.split(/[,，、；;\s]+/).filter(Boolean).map((s) => s.trim()).slice(0, 5)
       : [];
 
-  /* ── all skills flattened ── */
-  const allSkills = (() => {
+  /* ── skills ── */
+  const allSkills: string[] = (() => {
     if (g?.skillSummary?.length) return g.skillSummary.flatMap((s) => s.items);
     const items = [
       ...f.skills.split(/[,，、；;\s]+/),
       ...f.toolsUsed.split(/[,，、；;\s]+/),
     ].map((s) => s.trim()).filter(Boolean);
-    return items.slice(0, 10);
+    return items.slice(0, 8);
   })();
 
-  /* ── self-intro text ── */
+  /* ── self-intro ── */
   const introText = f.personalIntro?.trim()
     ? f.personalIntro.trim().replace(/[。！？，,]$/, '')
-    : `我是${f.name || '在读学生'}，${f.school ? `就读于${f.school}${f.major ? ` ${f.major}专业` : ''}` : f.major || ''}，专注${f.jobDirection || '创意设计'}方向，致力于创作有温度、有影响力的作品。`;
+    : '具备扎实的视觉表达能力与设计审美，关注用户需求与内容表达，能够结合 AI 工具提升设计效率与方案呈现能力，致力于创作有温度、有影响力的作品。';
 
   const infoFields: { label: string; value: string }[] = [
     { label: '姓名', value: f.name },
+    { label: '学历', value: '本科' },
     { label: '学校', value: f.school },
     { label: '专业', value: f.major },
     { label: '求职方向', value: f.jobDirection || f.targetPosition },
@@ -489,35 +526,37 @@ function IntroPage({
   ].filter((x) => x.value?.trim());
 
   return (
-    <div className="h-full flex p-5 lg:p-7 gap-5 lg:gap-7">
-      {/* ══ Left column 30% ══ */}
-      <div className="w-[30%] flex flex-col gap-4">
-        {/* INTRO title */}
-        <h2 className="text-3xl lg:text-4xl xl:text-5xl font-black tracking-tighter leading-none" style={{ color: t.primary }}>
+    <div className="h-full flex p-4 lg:p-6 gap-4 lg:gap-6">
+      {/* ═══ Left sidebar 25% ═══ */}
+      <div className="w-[25%] flex flex-col gap-3 lg:gap-4">
+        <h2 className="text-3xl lg:text-4xl font-black tracking-tighter leading-none shrink-0" style={{ color: t.primary }}>
           INTRO
         </h2>
 
-        {/* Photo */}
-        <div className="flex-1 relative overflow-hidden flex items-center justify-center" style={{ backgroundColor: t.bgAlt }}>
-          {f.profilePhoto ? (
-            <img src={f.profilePhoto.dataUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-6xl lg:text-7xl font-light opacity-15" style={{ color: t.primary }}>
-                {(f.name || '?')[0]}
-              </span>
-              <span className="text-[0.5rem] lg:text-[0.55rem] opacity-20" style={{ color: t.textMuted }}>
-                建议上传竖版个人照片
-              </span>
-            </div>
-          )}
+        {/* Photo — 3:4 portrait, ~75% width, centered */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative w-[75%] aspect-[3/4] overflow-hidden flex items-center justify-center"
+            style={{ backgroundColor: t.bgAlt }}>
+            {f.profilePhoto ? (
+              <img src={f.profilePhoto.dataUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-4xl lg:text-5xl font-light opacity-15" style={{ color: t.primary }}>
+                  {(f.name || '?')[0]}
+                </span>
+                <span className="text-[0.5rem] lg:text-[0.55rem] opacity-25" style={{ color: t.textMuted }}>
+                  上传竖版照片
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Info card */}
-        <div className="p-3 lg:p-4 space-y-2 lg:space-y-2.5" style={{ backgroundColor: t.surface }}>
+        <div className="p-2.5 lg:p-3 space-y-1.5 lg:space-y-2" style={{ backgroundColor: t.surface }}>
           {infoFields.map((fld) => (
-            <div key={fld.label} className="flex items-baseline gap-2 text-[0.55rem] lg:text-[0.6rem]">
-              <span className="font-semibold uppercase tracking-wider shrink-0 w-12 lg:w-14 opacity-50" style={{ color: t.textMuted }}>
+            <div key={fld.label} className="flex items-baseline gap-2 text-[0.6rem] lg:text-[0.7rem]">
+              <span className="font-semibold shrink-0 w-12 lg:w-14 opacity-45" style={{ color: t.textMuted }}>
                 {fld.label}
               </span>
               <span className="truncate font-medium" style={{ color: t.text }}>{fld.value}</span>
@@ -526,73 +565,99 @@ function IntroPage({
         </div>
       </div>
 
-      {/* ══ Right column 70% — 4 modules ══ */}
-      <div className="w-[70%] flex flex-col gap-2.5 lg:gap-3">
-        {/* 1. 自我介绍 */}
-        <div className="flex-1 p-4 lg:p-5 flex flex-col" style={{ backgroundColor: t.surface }}>
-          <p className="text-[0.55rem] lg:text-[0.65rem] uppercase tracking-[0.2em] font-semibold mb-2.5" style={{ color: t.primary }}>
-            自我介绍
-          </p>
-          <p className="text-[0.65rem] lg:text-sm leading-relaxed flex-1" style={{ color: t.text }}>
+      {/* ═══ Right content 75% ═══ */}
+      <div className="w-[75%] flex flex-col gap-2 lg:gap-2.5">
+        {/* 1. 自我评价 — largest module */}
+        <div className="flex-[2] p-3.5 lg:p-5 flex flex-col" style={{ backgroundColor: t.surface }}>
+          <div className="flex items-center gap-2 mb-2 lg:mb-3">
+            <div className="w-1 h-4 lg:h-5 rounded-full shrink-0" style={{ backgroundColor: t.primary }} />
+            <p className="text-xs lg:text-sm font-bold tracking-wider uppercase" style={{ color: t.primary }}>
+              自我评价
+            </p>
+          </div>
+          <p className="text-[0.7rem] lg:text-[0.85rem] leading-relaxed flex-1" style={{ color: t.text }}>
             {introText}
           </p>
         </div>
 
-        {/* 2. 实践经历 */}
-        <div className="flex-1 p-4 lg:p-5 flex flex-col" style={{ backgroundColor: t.surface }}>
-          <p className="text-[0.55rem] lg:text-[0.65rem] uppercase tracking-[0.2em] font-semibold mb-2.5" style={{ color: t.primary }}>
-            实践经历
-          </p>
-          {workEntries.length > 0 ? (
-            <div className="space-y-1.5 flex-1">
-              {workEntries.map((entry, i) => (
-                <p key={i} className="text-[0.58rem] lg:text-xs leading-relaxed flex items-start gap-2" style={{ color: t.textMuted }}>
-                  <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: t.accentBar || t.primary }} />
-                  {entry}
-                </p>
-              ))}
+        {/* 2 + 3. 实践经历 / 个人荣誉 — side by side */}
+        <div className="flex-[3] flex gap-2 lg:gap-2.5">
+          {/* 实践经历 */}
+          <div className="flex-1 p-3.5 lg:p-5 flex flex-col" style={{ backgroundColor: t.surface }}>
+            <div className="flex items-center gap-2 mb-2 lg:mb-3">
+              <div className="w-1 h-4 lg:h-5 rounded-full shrink-0" style={{ backgroundColor: t.primary }} />
+              <p className="text-xs lg:text-sm font-bold tracking-wider uppercase" style={{ color: t.primary }}>
+                实践经历
+              </p>
             </div>
-          ) : (
-            <p className="text-[0.55rem] lg:text-xs flex-1 opacity-25" style={{ color: t.textMuted }}>暂无记录</p>
-          )}
+            {workEntries.length > 0 ? (
+              <div className="space-y-2 flex-1">
+                {workEntries.map((entry, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-[0.6rem] lg:text-[0.7rem] font-bold opacity-30 shrink-0" style={{ color: t.primary }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <p className="text-[0.65rem] lg:text-[0.78rem] leading-relaxed" style={{ color: t.textMuted }}>{entry}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[0.6rem] lg:text-[0.7rem] flex-1 opacity-20" style={{ color: t.textMuted }}>暂无记录</p>
+            )}
+          </div>
+
+          {/* 个人荣誉 */}
+          <div className="flex-1 p-3.5 lg:p-5 flex flex-col" style={{ backgroundColor: t.surface }}>
+            <div className="flex items-center gap-2 mb-2 lg:mb-3">
+              <div className="w-1 h-4 lg:h-5 rounded-full shrink-0" style={{ backgroundColor: t.primary }} />
+              <p className="text-xs lg:text-sm font-bold tracking-wider uppercase" style={{ color: t.primary }}>
+                个人荣誉
+              </p>
+            </div>
+            {honors.length > 0 ? (
+              <div className="space-y-2 flex-1">
+                {honors.map((h, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 mt-1" style={{ backgroundColor: t.primary, opacity: 0.5 }} />
+                    <p className="text-[0.65rem] lg:text-[0.78rem] leading-relaxed" style={{ color: t.textMuted }}>{h}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[0.6rem] lg:text-[0.7rem] flex-1 opacity-20" style={{ color: t.textMuted }}>暂无内容</p>
+            )}
+          </div>
         </div>
 
-        {/* 3. 个人荣誉 */}
-        <div className="flex-1 p-4 lg:p-5 flex flex-col" style={{ backgroundColor: t.surface }}>
-          <p className="text-[0.55rem] lg:text-[0.65rem] uppercase tracking-[0.2em] font-semibold mb-2.5" style={{ color: t.primary }}>
-            个人荣誉
-          </p>
-          {honors.length > 0 ? (
-            <div className="space-y-1.5 flex-1">
-              {honors.map((h, i) => (
-                <p key={i} className="text-[0.58rem] lg:text-xs leading-relaxed flex items-start gap-2" style={{ color: t.textMuted }}>
-                  <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: t.accentBar || t.primary }} />
-                  {h}
-                </p>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[0.55rem] lg:text-xs flex-1 opacity-25" style={{ color: t.textMuted }}>暂未填写</p>
-          )}
-        </div>
-
-        {/* 4. 技能掌握 */}
-        <div className="p-4 lg:p-5 flex flex-col" style={{ backgroundColor: t.primary }}>
-          <p className="text-[0.55rem] lg:text-[0.65rem] uppercase tracking-[0.2em] font-semibold mb-3 opacity-70" style={{ color: t.onPrimary }}>
-            技能掌握
-          </p>
+        {/* 4. 技能掌握 — icon + name + desc cards */}
+        <div className="flex-[2.5] p-3.5 lg:p-5 flex flex-col" style={{ backgroundColor: t.primary }}>
+          <div className="flex items-center gap-2 mb-2.5 lg:mb-3">
+            <div className="w-1 h-4 lg:h-5 rounded-full shrink-0" style={{ backgroundColor: t.onPrimary, opacity: 0.6 }} />
+            <p className="text-xs lg:text-sm font-bold tracking-wider uppercase opacity-80" style={{ color: t.onPrimary }}>
+              技能掌握
+            </p>
+          </div>
           {allSkills.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {allSkills.map((item) => (
-                <span key={item} className="inline-flex items-center gap-1 px-2.5 py-1 text-[0.55rem] lg:text-[0.65rem] font-medium rounded-md"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: t.onPrimary }}>
-                  <span className="w-1 h-1 rounded-full" style={{ backgroundColor: t.onPrimary, opacity: 0.7 }} />
-                  {item}
-                </span>
-              ))}
+            <div className="grid grid-cols-2 gap-1.5 lg:gap-2 flex-1">
+              {allSkills.map((name) => {
+                const meta = lookupSkill(name);
+                return (
+                  <div key={name} className="flex items-start gap-2 p-1.5 lg:p-2 rounded-md"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                    <span className="w-8 h-6 lg:w-9 lg:h-7 rounded flex items-center justify-center text-[0.55rem] lg:text-[0.65rem] font-bold tracking-tighter shrink-0"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: t.onPrimary }}>
+                      {meta.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[0.6rem] lg:text-[0.7rem] font-semibold leading-tight" style={{ color: t.onPrimary }}>{name}</p>
+                      <p className="text-[0.5rem] lg:text-[0.6rem] leading-tight mt-0.5 opacity-60" style={{ color: t.onPrimary }}>{meta.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <p className="text-[0.55rem] lg:text-xs opacity-40" style={{ color: t.onPrimary }}>暂未填写</p>
+            <p className="text-[0.6rem] lg:text-[0.7rem] flex-1 opacity-35" style={{ color: t.onPrimary }}>暂未填写</p>
           )}
         </div>
       </div>
