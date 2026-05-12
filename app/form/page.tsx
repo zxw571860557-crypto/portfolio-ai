@@ -350,65 +350,111 @@ function ArtworkCard({ artwork, index, total, onChange, onRemove, onMainImageUpl
 /* ═══════════════════════════════════════════════
    Preview Card (Step 3)
    ═══════════════════════════════════════════════ */
-function PreviewCard({ style, themeKey }: { style: string; themeKey: string }) {
+function PreviewCard({ style, themeKey, layout, name }: {
+  style: string; themeKey: string; layout: string; name: string;
+}) {
   const t = THEME_MAP[themeKey as ThemeKey] || THEME_MAP.red;
 
   const styleLabel: Record<string, string> = {
     simple: '简洁求职风', designer: '设计师作品集风', art: '艺术展览风', tech: 'AI 科技风',
   };
+  const layoutLabel = layout === 'auto' ? '自动排版' : '自定义排版';
+  const themeLabel = THEME_OPTIONS.find((o) => o.key === themeKey)?.label || 'Creative Red';
 
-  const styleGradient: Record<string, string> = {
-    simple: `linear-gradient(135deg, ${t.bgAlt}, ${t.divider})`,
+  const styleBg: Record<string, string> = {
+    simple: t.bgAlt,
     designer: `linear-gradient(135deg, ${t.primary}, ${t.secondary})`,
-    art: `linear-gradient(135deg, #1a1a1a, #333)`,
-    tech: `linear-gradient(135deg, #0f172a, ${t.primary}, ${t.secondary})`,
+    art: '#1a1a1a',
+    tech: `linear-gradient(135deg, #0f172a, ${t.primary})`,
   };
 
+  const displayName = name || '你的姓名';
+
   return (
-    <div className="w-full max-w-[320px] mx-auto">
-      <p className="text-xs text-gray-400 text-center mb-2">作品集封面预览</p>
+    <div className="w-full max-w-[380px] mx-auto">
+      <p className="text-xs text-gray-400 text-center mb-3">作品集封面预览</p>
+
+      {/* Preview card */}
       <div
-        className="w-full rounded-xl overflow-hidden shadow-lg border border-gray-100"
-        style={{ aspectRatio: '16/9' }}
+        className="w-full rounded-xl overflow-hidden shadow-lg border border-gray-200"
+        style={{ aspectRatio: '16/10' }}
       >
         <div className="flex h-full">
           {/* Left color block */}
-          <div className="w-[40%] h-full flex flex-col justify-between p-4" style={{ backgroundColor: t.primary }}>
-            <div>
-              <p className="text-[10px] font-black tracking-tighter leading-none" style={{ color: t.onPrimary }}>
+          <div
+            className="w-[42%] h-full flex flex-col justify-between p-5"
+            style={{ backgroundColor: t.primary }}
+          >
+            <div className="flex-1 flex flex-col justify-center">
+              <p className="text-sm font-black tracking-tighter leading-none" style={{ color: t.onPrimary }}>
                 PORTFOLIO
               </p>
-              <div className="w-4 h-px my-2 opacity-50" style={{ backgroundColor: t.onPrimary }} />
-              <p className="text-[8px] font-semibold tracking-tight" style={{ color: t.onPrimary }}>
-                你的姓名
+              <div className="w-6 h-0.5 my-3 opacity-40" style={{ backgroundColor: t.onPrimary }} />
+              <p className="text-xs font-semibold tracking-tight" style={{ color: t.onPrimary }}>
+                {displayName}
+              </p>
+              <p className="text-[10px] tracking-wider opacity-50 mt-1" style={{ color: t.onPrimary }}>
+                作品集
               </p>
             </div>
-            <p className="text-[6px] tracking-widest uppercase opacity-35" style={{ color: t.onPrimary }}>
+            <p className="text-[9px] tracking-widest uppercase opacity-30" style={{ color: t.onPrimary }}>
               2026
             </p>
           </div>
 
           {/* Right preview area */}
-          <div className="w-[60%] h-full flex items-center justify-center p-4" style={{ background: styleGradient[style] || styleGradient.designer }}>
+          <div
+            className="w-[58%] h-full flex items-center justify-center p-4"
+            style={{ background: styleBg[style] || styleBg.designer }}
+          >
             {style === 'art' ? (
-              <div className="w-8 h-8 rounded opacity-25" style={{ backgroundColor: '#fbbf24' }} />
+              <div className="w-12 h-12 border border-white/20 flex items-center justify-center">
+                <div className="w-8 h-8 bg-amber-400/20" />
+              </div>
             ) : style === 'tech' ? (
-              <div className="w-8 h-8 rounded-full border opacity-25" style={{ borderColor: '#67e8f9' }} />
+              <div className="flex gap-2">
+                <div className="w-10 h-10 rounded-full border border-cyan-400/20" />
+                <div className="w-10 h-10 rounded-full border border-purple-400/20" />
+              </div>
+            ) : style === 'simple' ? (
+              <div className="w-3/4 space-y-3">
+                <div className="h-1.5 rounded opacity-15" style={{ backgroundColor: t.onPrimary }} />
+                <div className="h-1.5 w-2/3 rounded opacity-10" style={{ backgroundColor: t.onPrimary }} />
+                <div className="h-1.5 rounded opacity-10" style={{ backgroundColor: t.onPrimary }} />
+              </div>
             ) : (
-              <div className="grid grid-cols-2 gap-1.5 w-full h-full p-2">
-                <div className="rounded opacity-15" style={{ backgroundColor: t.onPrimary }} />
-                <div className="rounded opacity-10" style={{ backgroundColor: t.onPrimary }} />
-                <div className="rounded opacity-10" style={{ backgroundColor: t.onPrimary }} />
-                <div className="rounded opacity-15" style={{ backgroundColor: t.onPrimary }} />
+              <div className="grid grid-cols-2 gap-2 w-full h-full p-2">
+                <div className="rounded-lg opacity-20" style={{ backgroundColor: t.onPrimary }} />
+                <div className="rounded-lg opacity-15" style={{ backgroundColor: t.onPrimary }} />
+                <div className="rounded-lg opacity-15" style={{ backgroundColor: t.onPrimary }} />
+                <div className="rounded-lg opacity-20" style={{ backgroundColor: t.onPrimary }} />
               </div>
             )}
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-center gap-2 mt-2">
-        <span className="text-[10px] text-gray-500">{styleLabel[style] || '设计师作品集风'}</span>
-        <span className="w-1 h-1 rounded-full bg-gray-300" />
-        <span className="text-[10px] text-gray-500">{THEME_OPTIONS.find((o) => o.key === themeKey)?.label || 'Creative Red'}</span>
+
+      {/* Selection summary */}
+      <div className="mt-4 bg-gray-50 rounded-xl p-4 space-y-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">风格</span>
+          <span className="font-medium text-gray-800">{styleLabel[style] || '设计师作品集风'}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">色调</span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-800">{themeLabel}</span>
+            <span className="flex gap-0.5">
+              {t && [t.primary, t.secondary, t.primaryLight].map((c, i) => (
+                <span key={i} className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c }} />
+              ))}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">版式</span>
+          <span className="font-medium text-gray-800">{layoutLabel}</span>
+        </div>
       </div>
     </div>
   );
@@ -527,7 +573,7 @@ export default function FormPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-10">
+      <div className={`mx-auto px-4 py-10 ${currentStep === 2 ? 'max-w-5xl' : 'max-w-3xl'}`}>
         <StepIndicator current={currentStep} onStepClick={(s) => { if (s < currentStep) setCurrentStep(s); }} />
 
         {/* ═══ Step Content Card ═══ */}
@@ -645,111 +691,138 @@ export default function FormPage() {
 
             {/* ── Step 2: 风格选择并生成 ── */}
             {currentStep === 2 && (
-              <div className="space-y-0">
-                <div className="flex flex-col lg:flex-row gap-8">
-                  {/* Left column: selections */}
-                  <div className="flex-1 space-y-8 min-w-0">
-                    {/* 作品集风格 */}
-                    <div>
-                      <SectionTitle>作品集风格</SectionTitle>
-                      <div className="grid grid-cols-2 gap-3">
-                        {STYLE_OPTIONS.map((opt) => (
-                          <button key={opt.value} type="button"
-                            onClick={() => update('portfolioStyle', opt.value)}
-                            className={`text-left p-4 rounded-xl border-2 transition-all ${
-                              formData.portfolioStyle === opt.value
-                                ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                                : 'border-gray-100 hover:border-gray-200 bg-white'
-                            }`}>
-                            <div
-                              className={`w-full h-12 rounded-lg mb-3 ${
-                                opt.value === 'simple' ? 'bg-gradient-to-br from-gray-100 to-gray-200' :
-                                opt.value === 'designer' ? 'bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400' :
-                                opt.value === 'art' ? 'bg-gradient-to-br from-gray-900 to-gray-700' :
-                                'bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900'
-                              }`}
-                            >
-                              {opt.value === 'art' && <div className="w-6 h-6 mx-auto mt-3 rounded bg-amber-400/20" />}
-                              {opt.value === 'tech' && <div className="w-6 h-6 mx-auto mt-3 rounded-full border border-cyan-400/30" />}
-                            </div>
-                            <p className="text-sm font-medium text-gray-800">{opt.label}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* ═══ Left: 55% — selections ═══ */}
+                <div className="lg:w-[55%] space-y-8 min-w-0">
 
-                    {/* 作品集主色调 */}
-                    <div>
-                      <SectionTitle>作品集主色调</SectionTitle>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        {THEME_OPTIONS.map((opt) => {
-                          const selected = formData.portfolioThemeColor === opt.key;
-                          return (
-                            <button key={opt.key} type="button"
-                              onClick={() => update('portfolioThemeColor', opt.key)}
-                              className={`text-left p-3 rounded-xl border-2 transition-all ${
-                                selected ? 'border-gray-800 bg-gray-50 shadow-sm' : 'border-gray-100 hover:border-gray-300 bg-white'
-                              }`}>
-                              <div className="flex gap-1.5 mb-2">
-                                {opt.colors.map((c, i) => (
-                                  <span key={i} className="w-4 h-4 rounded-full" style={{ backgroundColor: c }} />
-                                ))}
-                              </div>
-                              <p className={`text-xs font-semibold ${selected ? 'text-gray-900' : 'text-gray-700'}`}>{opt.label}</p>
-                              <p className="text-[10px] text-gray-400 mt-0.5 leading-relaxed">{opt.desc}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* 版式偏好 */}
-                    <div>
-                      <SectionTitle>版式偏好</SectionTitle>
-                      <div className="grid grid-cols-2 gap-3">
-                        {LAYOUT_OPTIONS.map((opt) => (
-                          <button key={opt.value} type="button"
-                            onClick={() => update('layoutPreference', opt.value)}
-                            className={`text-left p-4 rounded-xl border-2 transition-all ${
-                              formData.layoutPreference === opt.value
-                                ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                                : 'border-gray-100 hover:border-gray-200 bg-white'
-                            }`}>
-                            <div className={`w-full h-10 rounded-lg mb-3 flex items-center justify-center ${
-                              opt.value === 'auto'
-                                ? 'bg-gradient-to-br from-indigo-100 to-purple-100'
-                                : 'bg-gray-50 border border-gray-100'
-                            }`}>
-                              {opt.value === 'auto' ? (
-                                <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                                </svg>
-                              ) : (
-                                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-                                </svg>
-                              )}
-                            </div>
-                            <p className="text-sm font-medium text-gray-800">{opt.label}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* 联系方式 */}
-                    <div>
-                      <SectionTitle>联系方式</SectionTitle>
-                      <InputField label="" value={formData.contact} onChange={(v) => update('contact', v)} placeholder="邮箱、手机号或微信号" required />
+                  {/* 作品集风格 — 4 cards */}
+                  <div>
+                    <SectionTitle>作品集风格</SectionTitle>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {STYLE_OPTIONS.map((opt) => (
+                        <button key={opt.value} type="button"
+                          onClick={() => update('portfolioStyle', opt.value)}
+                          className={`text-left rounded-xl border-2 transition-all duration-200 hover:shadow-sm ${
+                            formData.portfolioStyle === opt.value
+                              ? 'border-indigo-500 bg-indigo-50/60 shadow-sm'
+                              : 'border-gray-100 hover:border-gray-300 bg-white'
+                          }`}>
+                          <div
+                            className={`w-full h-16 rounded-t-[10px] ${
+                              opt.value === 'simple' ? 'bg-gradient-to-br from-gray-200 to-gray-300' :
+                              opt.value === 'designer' ? 'bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400' :
+                              opt.value === 'art' ? 'bg-gradient-to-br from-gray-900 to-gray-700' :
+                              'bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900'
+                            }`}
+                          >
+                            {opt.value === 'art' && <div className="w-8 h-8 mx-auto mt-4 rounded bg-amber-400/20" />}
+                            {opt.value === 'tech' && <div className="w-8 h-8 mx-auto mt-4 rounded-full border border-cyan-400/30" />}
+                          </div>
+                          <div className="p-3">
+                            <p className="text-sm font-semibold text-gray-800">{opt.label}</p>
+                            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{opt.desc}</p>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Right column: preview */}
-                  <div className="lg:w-[340px] shrink-0 flex flex-col items-center justify-start pt-0">
-                    <div className="sticky top-24 w-full">
-                      <PreviewCard style={formData.portfolioStyle} themeKey={formData.portfolioThemeColor} />
+                  {/* 作品集主色调 — 5 horizontal cards */}
+                  <div>
+                    <SectionTitle>作品集主色调</SectionTitle>
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                      {THEME_OPTIONS.map((opt) => {
+                        const selected = formData.portfolioThemeColor === opt.key;
+                        return (
+                          <button key={opt.key} type="button"
+                            onClick={() => update('portfolioThemeColor', opt.key)}
+                            className={`rounded-xl border-2 transition-all duration-200 text-center py-4 px-2 ${
+                              selected
+                                ? 'border-indigo-500 bg-gradient-to-b from-indigo-50 to-white shadow-md shadow-indigo-500/10'
+                                : 'border-gray-100 hover:border-gray-300 bg-white'
+                            }`}>
+                            <div className="flex justify-center gap-1.5 mb-3">
+                              {opt.colors.map((c, i) => (
+                                <span key={i} className="w-5 h-5 rounded-full shadow-sm" style={{ backgroundColor: c }} />
+                              ))}
+                            </div>
+                            <p className={`text-xs font-bold mb-1 ${selected ? 'text-gray-900' : 'text-gray-700'}`}>
+                              {opt.label}
+                            </p>
+                            <p className="text-[10px] text-gray-400 leading-relaxed">{opt.desc}</p>
+                          </button>
+                        );
+                      })}
                     </div>
+                  </div>
+
+                  {/* 版式偏好 — 2 cards */}
+                  <div>
+                    <SectionTitle>版式偏好</SectionTitle>
+                    <div className="grid grid-cols-2 gap-3 max-w-md">
+                      {LAYOUT_OPTIONS.map((opt) => (
+                        <button key={opt.value} type="button"
+                          onClick={() => update('layoutPreference', opt.value)}
+                          className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                            formData.layoutPreference === opt.value
+                              ? 'border-indigo-500 bg-indigo-50/60 shadow-sm'
+                              : 'border-gray-100 hover:border-gray-300 bg-white'
+                          }`}>
+                          <div className={`w-full h-12 rounded-lg mb-3 flex items-center justify-center ${
+                            opt.value === 'auto'
+                              ? 'bg-gradient-to-br from-indigo-100 to-purple-100'
+                              : 'bg-gray-50 border border-gray-100'
+                          }`}>
+                            {opt.value === 'auto' ? (
+                              <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                              </svg>
+                            )}
+                          </div>
+                          <p className="text-sm font-semibold text-gray-800">{opt.label}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 联系方式 */}
+                  <div>
+                    <SectionTitle>联系方式</SectionTitle>
+                    <input
+                      type="text" value={formData.contact} onChange={(e) => update('contact', e.target.value)}
+                      placeholder="邮箱、手机号或微信号"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-white text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* ═══ Right: 45% — preview + generate ═══ */}
+                <div className="lg:w-[45%] flex flex-col items-center justify-center">
+                  <div className="w-full max-w-[400px]">
+                    <PreviewCard
+                      style={formData.portfolioStyle}
+                      themeKey={formData.portfolioThemeColor}
+                      layout={formData.layoutPreference}
+                      name={formData.name}
+                    />
+
+                    {/* Generate button */}
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit()}
+                      className="w-full mt-6 py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-400 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5 text-lg tracking-wide"
+                    >
+                      生成我的作品集
+                    </button>
+
+                    <p className="text-xs text-gray-400 text-center mt-3">
+                      生成后可在预览页导出 PDF
+                    </p>
                   </div>
                 </div>
               </div>
@@ -759,7 +832,7 @@ export default function FormPage() {
         </div>
 
         {/* ═══ Navigation Buttons ═══ */}
-        <div className="flex items-center justify-between max-w-3xl mx-auto">
+        <div className={`flex items-center justify-between mx-auto ${currentStep === 2 ? 'max-w-5xl' : 'max-w-3xl'}`}>
           <div>
             {currentStep > 0 && (
               <button
@@ -787,18 +860,7 @@ export default function FormPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleSubmit()}
-                className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-2xl hover:shadow-xl hover:shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5 text-lg"
-              >
-                生成作品集
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                </svg>
-              </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
