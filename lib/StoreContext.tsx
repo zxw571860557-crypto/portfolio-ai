@@ -24,8 +24,12 @@ export interface FormData {
   name: string;
   school: string;
   major: string;
+  degree: string;
+  location: string;
   jobDirection: string;
   targetPosition: string;
+  industry: string;
+  experience: string;
   personalIntro: string;
   desiredAbilities: string;
   skills: string;
@@ -36,6 +40,7 @@ export interface FormData {
   artworks: Artwork[];
   portfolioStyle: string;
   portfolioThemeColor: string;
+  layoutPreference: string;
   coverImage: ArtworkImage | null;
   profilePhoto: ArtworkImage | null;
 }
@@ -71,13 +76,15 @@ function newArtwork(): Artwork {
 }
 
 const defaultFormData: FormData = {
-  name: '', school: '', major: '', jobDirection: '', targetPosition: '',
+  name: '', school: '', major: '', degree: '', location: '',
+  jobDirection: '', targetPosition: '', industry: '', experience: '',
   personalIntro: '', desiredAbilities: '',
   skills: '', toolsUsed: '', aiToolUsage: '',
   internship: '', contact: '',
   artworks: [newArtwork()],
   portfolioStyle: 'designer',
   portfolioThemeColor: 'red',
+  layoutPreference: 'auto',
   coverImage: null,
   profilePhoto: null,
 };
